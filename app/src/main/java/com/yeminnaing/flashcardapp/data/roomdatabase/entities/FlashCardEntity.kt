@@ -1,4 +1,4 @@
-package com.yeminnaing.flashcardapp.data.roomdatabase
+package com.yeminnaing.flashcardapp.data.roomdatabase.entities
 
 import androidx.room.Entity
 import androidx.room.PrimaryKey

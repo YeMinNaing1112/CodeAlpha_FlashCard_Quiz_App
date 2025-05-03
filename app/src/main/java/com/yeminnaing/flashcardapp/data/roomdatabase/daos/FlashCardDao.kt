@@ -1,13 +1,15 @@
-package com.yeminnaing.flashcardapp.data.roomdatabase
+package com.yeminnaing.flashcardapp.data.roomdatabase.daos
 
 import androidx.room.Dao
 import androidx.room.Delete
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
+import com.yeminnaing.flashcardapp.data.roomdatabase.entities.FlashCardEntity
+import com.yeminnaing.flashcardapp.data.roomdatabase.entities.MarksEntity
 
 @Dao
-interface Dao {
+interface FlashCardDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertFlashCard(flashCard: FlashCardEntity)
 
@@ -17,10 +19,6 @@ interface Dao {
     @Delete
     suspend fun deleteCard(flashCard: FlashCardEntity)
 
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun insertMarks(marks: MarksEntity)
 
-    @Query("SELECT * FROM Marks")
-    suspend fun getAllMarks(): List<MarksEntity>
 
 }
