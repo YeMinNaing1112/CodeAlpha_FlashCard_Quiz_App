@@ -2,9 +2,9 @@ plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
-//    id("com.google.devtools.ksp")
-    id ("kotlin-kapt")
-    id ("dagger.hilt.android.plugin" )
+    id("com.google.devtools.ksp")
+    id("com.google.dagger.hilt.android")
+    id("org.jetbrains.kotlin.plugin.serialization") version "1.9.0"
 }
 
 android {
@@ -62,22 +62,21 @@ dependencies {
 
 
 
-    implementation ("androidx.hilt:hilt-navigation-compose:1.0.0-alpha03")
+    implementation (libs.androidx.hilt.hilt.navigation.compose2)
 
     // Coroutines
     implementation ("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.5.0")
     implementation ("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.5.1")
     implementation (libs.gson)
 
-    //Dagger - Hilt
-    implementation (libs.hilt.android)
-    kapt (libs.hilt.android.compiler)
-    implementation (libs.androidx.hilt.lifecycle.viewmodel)
-    kapt (libs.androidx.hilt.compiler)
-
     // Room
     implementation (libs.androidx.room.runtime)
-    kapt (libs.androidx.room.compiler)
+    ksp("androidx.room:room-compiler:2.5.0")
+
+//    dagger hilt
+    implementation(libs.hilt.android)
+    ksp(libs.hilt.android.compiler)
+    implementation(libs.androidx.hilt.hilt.navigation.compose2)
 
     // Kotlin Extensions and Coroutines support for Room
     implementation (libs.androidx.room.ktx)

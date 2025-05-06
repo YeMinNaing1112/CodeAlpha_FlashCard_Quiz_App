@@ -6,10 +6,15 @@ import androidx.room.TypeConverters
 import com.yeminnaing.flashcardapp.data.roomdatabase.daos.FlashCardDao
 import com.yeminnaing.flashcardapp.data.roomdatabase.daos.MarksDao
 import com.yeminnaing.flashcardapp.data.roomdatabase.entities.FlashCardEntity
+import com.yeminnaing.flashcardapp.data.roomdatabase.entities.MarksEntity
 
-@Database(entities = [FlashCardEntity::class], version = 1, exportSchema = false)
+@Database(
+    entities = [FlashCardEntity::class,
+        MarksEntity::class
+    ], version = 1, exportSchema = false
+)
 @TypeConverters(Converter::class)
-abstract class CardDataBase:RoomDatabase() {
-  abstract fun flashCardDao(): FlashCardDao
-  abstract fun marksDao(): MarksDao
+abstract class CardDataBase : RoomDatabase() {
+    abstract fun flashCardDao(): FlashCardDao
+    abstract fun marksDao(): MarksDao
 }
