@@ -20,6 +20,7 @@ import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -33,16 +34,33 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.navigation.NavHostController
 import com.yeminnaing.flashcardapp.R
-import com.yeminnaing.flashcardapp.presentation.answers
+import com.yeminnaing.flashcardapp.data.roomdatabase.entities.FlashCardEntity
+import com.yeminnaing.flashcardapp.domain.model.AnswerModel
+import com.yeminnaing.flashcardapp.domain.model.QuestionModel
 
 @Composable
-fun AnswerScreen(modifier: Modifier = Modifier) {
+fun AnswerScreen(modifier: Modifier = Modifier, navHostController: NavHostController) {
+    val viewModel: AnswerScreenVm = hiltViewModel()
 
+    AnswerScreenDesign(addFlashCards = { flashCard ->
+        viewModel.addFlashCards(flashCard)
+    }, popUpTo = {
+        navHostController.navigateUp()
+    })
 }
 
 @Composable
-fun AnswerScreenDesign(modifier: Modifier = Modifier) {
+fun AnswerScreenDesign(
+    modifier: Modifier = Modifier,
+    addFlashCards: (flashCard: FlashCardEntity) -> Unit,
+    popUpTo: () -> Unit,
+) {
+    var flashCard: FlashCardEntity
+    val questions = remember { mutableStateListOf<QuestionModel>() }
+    val answers = remember { mutableStateListOf<AnswerModel>() }
     Column(
         modifier = modifier
             .fillMaxSize()
@@ -51,7 +69,7 @@ fun AnswerScreenDesign(modifier: Modifier = Modifier) {
     ) {
         var titleText by remember { mutableStateOf("") }
         var questionText by remember { mutableStateOf("") }
-        var dialogFlag  by remember { mutableStateOf(false) }
+        var dialogFlag by remember { mutableStateOf(false) }
 
         Text(
             text = "Add Flashcard",
@@ -130,7 +148,7 @@ fun AnswerScreenDesign(modifier: Modifier = Modifier) {
             LazyColumn(
                 modifier = modifier.fillMaxWidth()
             ) {
-                items(answers) { answer ->
+                items(items = answers) { answer ->
                     Box(
                         modifier
                             .fillMaxWidth()
@@ -154,11 +172,13 @@ fun AnswerScreenDesign(modifier: Modifier = Modifier) {
 
                 }
             }
+
+
         }
 
         Button(
             onClick = {
-                dialogFlag=true
+                dialogFlag = true
             },
             colors = ButtonDefaults.buttonColors(containerColor = colorResource(R.color.primary_dark)),
             modifier = Modifier
@@ -169,34 +189,58 @@ fun AnswerScreenDesign(modifier: Modifier = Modifier) {
         }
 
         Button(
-            onClick = {},
+            onClick = {
+                questions.add(
+                    QuestionModel(
+                        questionText = questionText,
+                        answerModels = answers.toList()
+                    )
+                )
+
+                questionText = ""
+                answers.clear()
+            },
+            enabled = answers.isNotEmpty(),
             colors = ButtonDefaults.buttonColors(containerColor = colorResource(R.color.primary_dark)),
             modifier = Modifier
                 .padding(top = 16.dp)
                 .width(300.dp)
         ) {
-            Text(text = "+ Add New Question", color = Color.White)
+            Text(text = "Save Question", color = Color.White)
         }
 
         Button(
-            onClick = {},
+            onClick = {
+                flashCard = FlashCardEntity(
+                    title = titleText,
+                    question = questions.toList()
+                )
+                addFlashCards(flashCard)
+                popUpTo()
+            },
             colors = ButtonDefaults.buttonColors(containerColor = colorResource(R.color.primary_dark)),
             modifier = Modifier
                 .padding(32.dp)
-                .width(300.dp)
+                .width(300.dp),
+            enabled = titleText.isNotBlank() && questions.isNotEmpty()
 
         ) {
             Text(text = "Save Flashcard", color = Color.White)
         }
 
 
-        if (dialogFlag){
+        if (dialogFlag) {
             Dialog(
-                onDismissRequest = {dialogFlag =false}
+                onDismissRequest = { dialogFlag = false }
             ) {
-              AddAnswerDialog {
-                  dialogFlag=it
-              }
+                AddAnswerDialog(
+                    onDismiss = {
+                        dialogFlag = it
+                    },
+                    addAnswer = { answer, isCorrect ->
+                        answers.add(AnswerModel(text = answer, isCorrect))
+                    }
+                )
             }
         }
 
@@ -204,9 +248,14 @@ fun AnswerScreenDesign(modifier: Modifier = Modifier) {
 }
 
 @Composable
-fun AddAnswerDialog(modifier: Modifier = Modifier,onDismiss:(Boolean)->Unit) {
+fun AddAnswerDialog(
+    modifier: Modifier = Modifier,
+    onDismiss: (Boolean) -> Unit,
+    addAnswer: (answer: String, isCorrect: Boolean) -> Unit,
+) {
 
     var answerText by remember { mutableStateOf("") }
+    var isSelected by remember { mutableStateOf(false) }
     Column(
         modifier = modifier
             .width(300.dp)
@@ -244,15 +293,16 @@ fun AddAnswerDialog(modifier: Modifier = Modifier,onDismiss:(Boolean)->Unit) {
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
-            var isSelected by remember { mutableStateOf(false) }
+
             Text("Is Correct", color = Color.White)
 
             RadioButton(onClick = {
-               isSelected=!isSelected
+                isSelected = !isSelected
             }, selected = isSelected)
         }
         Button(
             onClick = {
+                addAnswer(answerText, isSelected)
                 onDismiss(false)
             },
             colors = ButtonDefaults.buttonColors(containerColor = colorResource(R.color.primary_dark)),
@@ -261,7 +311,7 @@ fun AddAnswerDialog(modifier: Modifier = Modifier,onDismiss:(Boolean)->Unit) {
                 .width(300.dp)
 
         ) {
-            Text(text = "Save Flashcard", color = Color.White)
+            Text(text = "Save Answer", color = Color.White)
         }
 
     }
@@ -272,11 +322,11 @@ fun AddAnswerDialog(modifier: Modifier = Modifier,onDismiss:(Boolean)->Unit) {
 @Preview
 @Composable
 private fun AnswerScreenDesignPrev() {
-    AnswerScreenDesign()
+    AnswerScreenDesign(addFlashCards = {}, popUpTo = {})
 }
 
 @Preview
 @Composable
 private fun AddAnswerDialogPrev() {
-    AddAnswerDialog(onDismiss = {})
+    AddAnswerDialog(onDismiss = {}, addAnswer = { _, _ -> })
 }

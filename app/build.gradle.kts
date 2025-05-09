@@ -2,9 +2,9 @@ plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
+    alias(libs.plugins.jetbrains.kotlin.serialization)
     id("com.google.devtools.ksp")
     id("com.google.dagger.hilt.android")
-    id("org.jetbrains.kotlin.plugin.serialization") version "1.9.0"
 }
 
 android {
@@ -80,4 +80,8 @@ dependencies {
 
     // Kotlin Extensions and Coroutines support for Room
     implementation (libs.androidx.room.ktx)
+
+    //Navigation
+    implementation(libs.androidx.navigation.compose)
+    implementation(libs.kotlinx.serialization.json)
 }

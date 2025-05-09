@@ -12,4 +12,7 @@ interface MarksDao {
 
     @Query("SELECT * FROM Marks")
     suspend fun getAllMarks(): List<MarksEntity>
+
+    @Query("DELETE  FROM Marks WHERE flashCardId= :id  ")
+    suspend fun deleteById(id:Int)
 }

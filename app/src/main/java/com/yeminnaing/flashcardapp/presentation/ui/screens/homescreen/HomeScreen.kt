@@ -2,6 +2,7 @@ package com.yeminnaing.flashcardapp.presentation.ui.screens.homescreen
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -21,6 +22,7 @@ import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.List
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.FloatingActionButtonDefaults
 import androidx.compose.material3.Icon
@@ -30,8 +32,9 @@ import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -44,24 +47,69 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.navigation.NavGraph.Companion.findStartDestination
+import androidx.navigation.NavHostController
 import com.yeminnaing.flashcardapp.R
 import com.yeminnaing.flashcardapp.data.roomdatabase.entities.FlashCardEntity
 import com.yeminnaing.flashcardapp.domain.model.AnswerModel
 import com.yeminnaing.flashcardapp.domain.model.QuestionModel
-import com.yeminnaing.flashcardapp.presentation.dammyData
+import com.yeminnaing.flashcardapp.presentation.navigation.FlashCardScreens
 
 @Composable
-fun HomeScreen(modifier: Modifier = Modifier) {
-
+fun HomeScreen(modifier: Modifier = Modifier, navHostController: NavHostController) {
+    val viewModel: HomeScreenVm = hiltViewModel()
+    val homeScreenStates by viewModel.homeScreenStates.collectAsState()
+    HomeScreenDesign(
+        navigateToAnswerScreen = {
+            navHostController.navigate(FlashCardScreens.AnswerScreen) {
+                popUpTo(navHostController.graph.findStartDestination().id) {
+                    inclusive = false
+                }
+                launchSingleTop = true
+            }
+        },
+        homeScreenStates = homeScreenStates,
+        deleteCard = {
+            viewModel.deleteCard(it)
+        }, navigateToFlashCardScreen = {
+            navHostController.navigate(FlashCardScreens.FlashCardScreen(id = it)) {
+                popUpTo(navHostController.graph.findStartDestination().id) {
+                    inclusive = false
+                    saveState = false
+                }
+                launchSingleTop = true
+            }
+        }, navigateToDashBoardScreen = {
+            navHostController.navigate(FlashCardScreens.DashBoardScreen) {
+                popUpTo(navHostController.graph.findStartDestination().id) {
+                    inclusive = false
+                    saveState = false
+                }
+                launchSingleTop = true
+            }
+        }, deleteMark = {
+            viewModel.deleteMark(it)
+        })
 }
 
 @Composable
-fun HomeScreenDesign(modifier: Modifier = Modifier) {
-    var selectedIndex by remember { mutableStateOf(0) }
+fun HomeScreenDesign(
+    modifier: Modifier = Modifier,
+    navigateToAnswerScreen: () -> Unit,
+    homeScreenStates: HomeScreenVm.HomeScreenStates,
+    deleteCard: (card: FlashCardEntity) -> Unit,
+    deleteMark: (id: Int) -> Unit,
+    navigateToFlashCardScreen: (id: Int) -> Unit,
+    navigateToDashBoardScreen: () -> Unit,
+) {
+    var selectedIndex by remember { mutableIntStateOf(0) }
     Scaffold(
         floatingActionButton = {
             FloatingActionButton(
-                onClick = {},
+                onClick = {
+                    navigateToAnswerScreen()
+                },
                 containerColor = colorResource(R.color.primary_color),
                 contentColor = Color.White,
                 elevation = FloatingActionButtonDefaults.elevation(8.dp),
@@ -75,7 +123,10 @@ fun HomeScreenDesign(modifier: Modifier = Modifier) {
         }, bottomBar = {
             MyBottomNavigationBar(
                 selectedIndex = selectedIndex,
-                onItemSelected = { selectedIndex = it }
+                onItemSelected = { selectedIndex = it },
+                navigate = {
+                    navigateToDashBoardScreen()
+                }
             )
         }
     ) {
@@ -109,13 +160,68 @@ fun HomeScreenDesign(modifier: Modifier = Modifier) {
                     )
                 }
             }
-            LazyColumn(
-                modifier = modifier.fillMaxSize().padding(end = 16.dp)
-            ) {
-                items(dammyData) { flashCard ->
-                    CardDesign(flashCard = flashCard)
+            when (homeScreenStates) {
+                is HomeScreenVm.HomeScreenStates.Empty -> {
+                    Box(
+                        modifier = modifier.fillMaxSize()
+                    ) {
+                        Text(
+                            "There is No FlashCards",
+                            color = colorResource(R.color.primary_color),
+                            fontSize = 24.sp,
+                            modifier = modifier.align(
+                                Alignment.Center
+                            )
+                        )
+                    }
+                }
+
+                is HomeScreenVm.HomeScreenStates.Error -> {
+                    Box(
+                        modifier = modifier.fillMaxSize()
+                    ) {
+                        Text(
+                            "Error",
+                            color = colorResource(R.color.primary_color),
+                            fontSize = 24.sp,
+                            modifier = modifier.align(
+                                Alignment.Center
+                            )
+                        )
+                    }
+
+                }
+
+                is HomeScreenVm.HomeScreenStates.Loading -> {
+                    Box(
+                        modifier = modifier.fillMaxSize()
+                    ) {
+                        CircularProgressIndicator(modifier = modifier.align(Alignment.Center))
+                    }
+                }
+
+                is HomeScreenVm.HomeScreenStates.Success -> {
+                    val cards = homeScreenStates.flashCards
+
+                    LazyColumn(
+                        modifier = modifier
+                            .fillMaxSize()
+                            .padding(end = 16.dp)
+                    ) {
+                        items(cards) { flashCard ->
+                            CardDesign(flashCard = flashCard, navigateToAnswerScreen = {
+                                navigateToFlashCardScreen(flashCard.id)
+                            }, deleteCard = {
+                                deleteCard(flashCard)
+                            }, deleteMark = {
+                                deleteMark(flashCard.id)
+                            })
+                        }
+                    }
                 }
             }
+
+
         }
 
     }
@@ -123,12 +229,21 @@ fun HomeScreenDesign(modifier: Modifier = Modifier) {
 
 
 @Composable
-fun CardDesign(modifier: Modifier = Modifier, flashCard: FlashCardEntity) {
+fun CardDesign(
+    modifier: Modifier = Modifier,
+    flashCard: FlashCardEntity,
+    navigateToAnswerScreen: () -> Unit,
+    deleteCard: () -> Unit,
+    deleteMark: () -> Unit,
+) {
     Card(
         modifier = modifier
             .fillMaxWidth()
-            .padding(start = 16.dp,top=16.dp, end = 16.dp)
-            .height(100.dp),
+            .padding(start = 16.dp, top = 16.dp, end = 16.dp)
+            .height(100.dp)
+            .clickable {
+                navigateToAnswerScreen()
+            },
         shape = RoundedCornerShape(32.dp),
         colors = CardDefaults.cardColors(
             containerColor = Color.White
@@ -146,7 +261,13 @@ fun CardDesign(modifier: Modifier = Modifier, flashCard: FlashCardEntity) {
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 Text(text = flashCard.title, color = Color.Black, fontSize = 20.sp)
-                Image(imageVector = Icons.Default.Delete, contentDescription = "delete")
+                Image(
+                    imageVector = Icons.Default.Delete,
+                    contentDescription = "delete",
+                    modifier = modifier.clickable {
+                        deleteCard()
+                        deleteMark()
+                    })
             }
 
         }
@@ -164,6 +285,7 @@ data class BottomNavItem(
 fun MyBottomNavigationBar(
     selectedIndex: Int,
     onItemSelected: (Int) -> Unit,
+    navigate: () -> Unit,
 ) {
     val items = listOf(
         BottomNavItem("Home", Icons.Default.Home),
@@ -176,7 +298,10 @@ fun MyBottomNavigationBar(
         items.forEachIndexed { index, item ->
             NavigationBarItem(
                 selected = index == selectedIndex,
-                onClick = { onItemSelected(index) },
+                onClick = {
+                    onItemSelected(index)
+                    navigate()
+                },
                 icon = {
                     Icon(
                         imageVector = item.icon,
@@ -200,7 +325,14 @@ fun MyBottomNavigationBar(
 @Preview(showSystemUi = true)
 @Composable
 private fun HomeScreenDesignPrev() {
-    HomeScreenDesign()
+    HomeScreenDesign(
+        navigateToAnswerScreen = {},
+        homeScreenStates = HomeScreenVm.HomeScreenStates.Empty,
+        deleteCard = {},
+        navigateToFlashCardScreen = {},
+        navigateToDashBoardScreen = {},
+        deleteMark = {}
+    )
 }
 
 @Preview(showBackground = true)
@@ -260,6 +392,6 @@ private fun CardDesignPrev() {
                     )
                 )
             )
-        )
+        ), navigateToAnswerScreen = {}, deleteCard = {}, deleteMark = {}
     )
 }
