@@ -16,4 +16,4 @@ quiz scores.
 
  - RoomData Base - For DataBase 
  - Used Dagger Hilt - For Dependency Injection 
- - Ksp - For Serialization 
+ - Ksp - For Annotations 
